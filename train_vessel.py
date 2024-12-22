@@ -1,12 +1,7 @@
 import sys
 import torch.backends.cudnn as cudnn
-
 sys.path.append('../')
-# sys.path.append('/root/code/Vessel_Net')
-sys.path.append('/root/My/CS_Net_master')
 sys.path.append('../data_process/')
-sys.path.append('../networks/common/')
-sys.path.append('../networks/MESnet/')
 
 import numpy as np
 import torch
@@ -17,103 +12,18 @@ import torch.nn as nn
 import torch.optim as optims
 import torch.utils.data as data
 from tqdm import tqdm
-# from torchinfo import summary
-# from thop import profile
-# from thop import clever_format
-
 
 
 from time import time
 from only_for_vessel_seg.data_process.data_load import ImageFolder, get_drive_data
-# from only_for_vessel_seg.networks.common.unet_baseline import UNet
-# from only_for_vessel_seg.networks.MESnet.backbone import MES_Unet
-# from only_for_vessel_seg.networks.common.res2unet import MSUnet
-from only_for_vessel_seg.train_test.losses import loss_ce, loss_ce_ds, CF_Loss
+
+from only_for_vessel_seg.train_test.losses import loss_ce
 from only_for_vessel_seg.train_test.eval_test import val_vessel
 from torch.utils.tensorboard import SummaryWriter
 from only_for_vessel_seg.train_test.help_functions import platform_info, check_size
 from only_for_vessel_seg.train_test.evaluations import threshold_by_otsu
-# import only_for_vessel_seg.train_test.losses as loss_library
-#
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_1 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_2 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_2
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_3 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_3
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_4 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_4
-from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_5 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_5
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_6 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_6
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_7 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_7
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_8 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_8
-#
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_5_S1 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_5_1
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_5_S2 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_5_2
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_5_S3 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_5_3
-# from only_for_vessel_seg.New_Net.Net.New_train_No1.UUU_C_5_S4 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6_5_4
-#
-#
-# from only_for_vessel_seg.New_Net.Net_1.UU_C_1 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU_1
-# from only_for_vessel_seg.New_Net.Net_1.UU_C_2 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU_2
-# from only_for_vessel_seg.New_Net.Net_1.UU_C_3 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU_3
-# from only_for_vessel_seg.New_Net.Net_1.UU_C_4 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU_4
-# from only_for_vessel_seg.New_Net.Net_1.UU_C_5 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU_5
-# from only_for_vessel_seg.New_Net.Net_1.UU_C_6 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU_6
-from only_for_vessel_seg.New_Net.Net_1.UU_C_7 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU_7
-from only_for_vessel_seg.networks.comparison.res2unet import MSUnet
 
-
-# from only_for_vessel_seg.networks.common.csnet import CSNet
-# from only_for_vessel_seg.networks.common.Unet_Res_BN_CS_C import ResNeSt_CS_BN_C_3
-# from only_for_vessel_seg.networks.common.CS_BR import CSNet_BR
-# from only_for_vessel_seg.networks.common.Unet_Res_BN_CS_A import ResNeSt_CS_BN_A_2
-# from only_for_vessel_seg.networks.common.CS_BR1 import CSNet_BR1
-# from only_for_vessel_seg.networks.common.CSNet_resaspp import CSNet_BR_Resp
-# from only_for_vessel_seg.networks.common.CS_REAP_AB import CSNet_BR_RP_AB
-# from only_for_vessel_seg.networks.common.CS_REAP_AB_test import CSNet_BR_RP_AB_1
-# from only_for_vessel_seg.networks.common.CS_REAP_AB_test_bn import CSNet_BR_RP_AB_BN_1
-#
-# from only_for_vessel_seg.networks.ablation.ablation_unet import UNet
-# from only_for_vessel_seg.networks.ablation.ablation_backbone import Backbone_Net
-# from only_for_vessel_seg.networks.ablation.ablation_backbone_resaspp import Backbone_resaspp_Net
-# from only_for_vessel_seg.networks.ablation.ablation_csam import Backbone_CSAM_Net
-# from only_for_vessel_seg.networks.ablation.ablaiton_mta import Backbone_MTA_Net
-# from only_for_vessel_seg.networks.ablation.ablation_backbone_A_resaspp import Backbone_A_resaspp_Net
-# from only_for_vessel_seg.networks.ablation.ablation_backbone_resaspp_mta import Backbone_resaspp_mta_Net
-# from only_for_vessel_seg.networks.ablation.ablation_backbone_A_csam import Backbone_A_CSAM_Net
-# from only_for_vessel_seg.networks.comparison.DU_Net import DUNetV1V2
-# from only_for_vessel_seg.networks.comparison.CE_Net import CE_Net
-# # from only_for_vessel_seg.Net.train_No_1.UUU_C_1 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6
-# from only_for_vessel_seg.Net.train_No1.UUU_C_6 import BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU6
-
-
-# from only_for_vessel_seg.FMA_1.abltion.baseline import baseline
-# from only_for_vessel_seg.FMA_1.abltion.baseline_bc import baseline_bc
-# from only_for_vessel_seg.FMA_1.abltion.baseline_abc import baseline_abc
-#
-#
-# from only_for_vessel_seg.FMA_1.contrast.LadderNetv65 import LadderNetv6
-# from only_for_vessel_seg.FMA_1.contrast.DU_Net import DU_Net
-# from only_for_vessel_seg.FMA_1.contrast.csnet import CSNet
-# from only_for_vessel_seg.FMA_1.contrast.AttnUnet import AttU_Net
-#
-#
-# from only_for_vessel_seg.FMA_1.ablation_4.D import D
-# from only_for_vessel_seg.FMA_1.ablation_4.S import S
-# from only_for_vessel_seg.FMA_1.ablation_4.D_S_M import D_S_M
-#
-#
-# from only_for_vessel_seg.Net.ablation.without_FMCD import without_FMCD
-# from only_for_vessel_seg.Net.ablation.without_Shallow import without_Shallow
-#
-# from only_for_vessel_seg.networks.ablation.ablation_1cbam import Backbone_1CBAM_Net
-# from only_for_vessel_seg.Study.U_Net_res import U_net_res
-# from only_for_vessel_seg.Study.CS_Net import CSNet_BR_Resp2
-
-# from only_for_vessel_seg.New_Net.Net.ablation.UUU_C_5_Baseline import UUU_C_5_Baseline
-# from only_for_vessel_seg.New_Net.Net.Parameter.UU_C_5_Deep_1 import UU_C_5_Deep_1
-# from only_for_vessel_seg.New_Net.Net.Parameter.UU_C_5_Deep_2 import UU_C_5_Deep_2
-# from only_for_vessel_seg.New_Net.Net.Parameter.UU_C_5_Deep_3 import UU_C_5_Deep_3
-
-
-
+from DSFM_Net import DSFM_Net
 from only_for_vessel_seg import Constants
 
 learning_rates = Constants.learning_rates
@@ -138,36 +48,17 @@ def update_lr2(epoch, optimizer, total_epoch=Constants.TOTAL_EPOCH):
         p['lr'] = new_lr
 
 
-# def optimizer_net(net, optimizers, criterion, images, masks,ch):
-#     optimizers.zero_grad()
-#     # pred, pred1, pred2 = net(images)
-#     pred = net(images)
-#     loss0 = loss_ce(pred, masks, criterion, ch)
-#     # loss1 = loss_ce(pred1, masks, criterion, ch)
-#     # loss2 = loss_ce(pred2, masks, criterion, ch)
-#     # loss = loss0 + loss1 + loss2
-#     loss = loss0
-#     loss.backward()
-#     optimizers.step()
-#     return pred, loss
-
 def optimizer_net(net, optimizers, criterion, images, masks,ch):
-    optimizers.zero_grad()
-    pred, pred1, pred2 = net(images)
-    beta = 1.1
-    alpha = 0.03
-    gamma = 0.02
-    # Initialize CF_Loss with the required parameters
-    cf_loss_fn = CF_Loss(beta=beta, alpha=alpha, gamma=gamma)
-    # Calculate the loss using CF_Loss
-    loss0 = cf_loss_fn(pred, masks)
-    loss1 = cf_loss_fn(pred1, masks)
-    loss2 = cf_loss_fn(pred2, masks)
-    loss = loss0 + loss1 + loss2
-    loss.backward()
-    optimizers.step()
-    return pred, loss
-
+     optimizers.zero_grad()
+     pred, pred1, pred2 = net(images)
+     pred = net(images)
+     loss0 = loss_ce(pred, masks, criterion, ch)
+     loss1 = loss_ce(pred1, masks, criterion, ch)
+     loss2 = loss_ce(pred2, masks, criterion, ch)
+     loss = loss0 + loss1 + loss2
+     loss.backward()
+     optimizers.step()
+     return pred, loss
 
 
 def visual_preds(preds, is_preds=True):  # This for multi-classification
@@ -203,37 +94,7 @@ def train_model(learning_rates):
     train_epoch_best_loss = Constants.INITAL_EPOCH_LOSS
     ch = Constants.BINARY_CLASS
     criterion = nn.BCELoss()
-
-    # criterion2 = nn.CrossEntropyLoss()
-    #net = ResNeSt_CS_BN_C_3(1, ch).to(device)
-    net = BA_CS_FRN_MISH_CCC_MSS_3CS_4NetVUU_7(1, ch).to(device)  # 1
-    # net = without_Shallow(1, ch).to(device) # 1
-
-    # net = CE_Net(1, ch).to(device)  # 1
-    # net = DUNetV1V2(1, ch).to(device)  # 1
-    # net = UNet(1, ch).to(device)  # 1
-    # net = CSNet_BR_RP_AB(1, ch).to(device)  # 1
-    # summary(net, input_data=torch.rand(Constants.BATCH_SIZE, 1, 512, 512))
-
-    # inputs = torch.randn(1, 1, 224, 224)  ####(360,640)
-    # inputs = inputs.to(device)
-    # flops, params = profile(net, inputs=(inputs,))  ##verbose=False
-    # # flops, params = clever_format([flops, params], '%3.f')
-    # # print('The number of MACs is %s' % (flops / 1e9))  ##### MB
-    # # print('The number of params is %s' % (params / 1e6))  ##### MB
-    # # print(flops, params)
-    # # print("FLOPs=", str(flops / 1e9) + '{}'.format("G"))
-    # # print("params=", str(params / 1e6) + '{}'.format("M"))
-    # print('flops: ', flops, 'params: ', params)
-    # print('flops: %.2f G, params: %.2f M' % (flops / 1000000000.0, params / 1000000.0))
-
-
-
-    # if device == 'cuda':
-    #     net.cuda()
-    #     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
-    #     cudnn.benchmark = True
-
+    net = DSFM_Net(1, ch).to(device)  # 1
     optimizers = optims.Adam(net.parameters(), lr=learning_rates, betas=(0.9, 0.999))
     trains, val = get_drive_data()
     dataset = ImageFolder(trains[0], trains[1])
@@ -280,7 +141,6 @@ def train_model(learning_rates):
                   writer.add_image('Train/image_predictions', torch.unsqueeze(torch.argmax(rand_pred[0, :, :, :], dim=0), 0),
                              epoch)
         update_lr2(epoch, optimizers)  # modify  lr
-        # adjust_lr(optimizers, base_lr=0.001, iter=epoch, max_iter=600, power=0.9)
 
         print('************ start to validate current model {}.iter performance ! ************'.format(epoch))
         acc, sen, f1score, val_loss = val_vessel(net, val[0], val[1], val[0].shape[0], epoch)
@@ -292,19 +152,6 @@ def train_model(learning_rates):
         model_name = Constants.saved_path + "{}.iter3".format(epoch)
         torch.save(net, model_name)
 
-        # if train_epoch_loss >= train_epoch_best_loss:
-        #     no_optim += 1
-        # else:
-        #     no_optim = 0
-        #     train_epoch_best_loss = train_epoch_loss
-        #     model_name = Constants.saved_path + "{}.iter2".format(epoch)
-        #     torch.save(net, model_name)
-        # if no_optim > Constants.NUM_EARLY_STOP:
-        #     print('Early stop at %d epoch' % epoch)
-        #     break
-        # if epoch % 20 == 0 and epoch != 0:
-        #     model_name = Constants.saved_path + "{}.iter2".format(epoch)
-        #     torch.save(net, model_name)
     print('***************** Finish training process ***************** ')
 
 if __name__ == '__main__':

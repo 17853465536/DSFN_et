@@ -1,12 +1,10 @@
 import sys
 import torch.backends.cudnn as cudnn
-# sys.path.append('/root/code/Vessel_Net')
-sys.path.append('/root/My/CS_Net_master')
+sys.path.append('/root/code/Vessel_Net')
+
 sys.path.append('../data_process/')
 sys.path.append('../networks/')
-sys.path.append('../networks/common/')
-sys.path.append('../networks/MESnet/')
-sys.path.append('../networks/threestage/')
+
 
 from PIL import Image
 import numpy as np
@@ -24,7 +22,6 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 from only_for_vessel_seg.data_process.data_ultils import read_all_images
 from only_for_vessel_seg.data_process.data_load import ImageFolder,get_drive_data,get_drive_data1
 from only_for_vessel_seg.networks.common.unet_baseline import UNet
-# from avseg import AVSegNet
 from only_for_vessel_seg import Constants
 from only_for_vessel_seg.train_test.evaluations import misc_measures,roc_pr_curve,threshold_by_otsu
 from only_for_vessel_seg.test.differentce_retinal import retina_color_different
@@ -67,9 +64,8 @@ def val_vessel(net, imgs, masks, length, epoch =0, ch = Constants.BINARY_CLASS):
 
 
             print(x_img.size(),'---------------')
-            # generated_vessel = net(x_img)
-            # generated_vessel = crop_eval(net,x_img)
-            generated_vessel = crop_eval_new_V1(net, x_img)
+            generated_vessel = net(x_img)
+            generated_vessel = crop_eval(net,x_img)
             vl = nn.BCELoss()(generated_vessel.detach().cpu().reshape((-1,)), torch.tensor(masks[iteration].reshape((-1,)), dtype=torch.float))
             val_loss.append(vl.numpy())
             generated_vessel = generated_vessel.permute((0, 2, 3, 1)).detach().cpu().numpy()
@@ -110,10 +106,6 @@ def val_vessel(net, imgs, masks, length, epoch =0, ch = Constants.BINARY_CLASS):
             f.write(s)
             f.write('\n')
 
-        # with open(os.path.join('/root/code/Vessel_Net/only_for_vessel_seg/log', 'save_result.txt'), 'a',
-        #           encoding='utf-8') as f:
-        #     f.write(s)
-        #     f.write('\n')
 
     return np.mean(acc), np.mean(sensitivity), np.mean(F1_score), np.mean(val_loss)
 
@@ -131,9 +123,7 @@ def test_vessel(path, ch = Constants.BINARY_CLASS):
             x_img = images[iter_]
             x_img = np.expand_dims(x_img, axis=0)
             x_img = torch.tensor(x_img, dtype=torch.float32).to(device)
-            # generated_vessel = net(x_img)
-            # generated_vessel = crop_eval(net,x_img)
-            generated_vessel = crop_eval_new_V1(net, x_img)
+            generated_vessel = crop_eval(net,x_img)
             generated_vessel = generated_vessel.permute((0, 2, 3, 1)).detach().cpu().numpy()
     
             if ch == 1:  # for [N,1,H,W]
@@ -241,119 +231,6 @@ def crop_eval(net, image, crop_size = Constants.resize_drive):
                 new_image[:, :, i, j] = rd[:,:,i-d_h,j-d_w]
 
     return new_image.to(device)
-
-
-# def crop_eval_new_V2(net, image, crop_size=512, row=4, col=4):
-#     h_o, w_o = image.size()[2], image.size()[3]
-#     assert h_o % crop_size == 0 and w_o % crop_size == 0, "Image dimensions must be divisible by crop size."
-#
-#     # 初始化分块结果
-#     group_image = torch.zeros((row, col, image.size(0), image.size(1), crop_size, crop_size)).to(device)
-#     if net is not None:
-#         group_image1 = torch.zeros_like(group_image).to(device)
-#         group_image2 = torch.zeros_like(group_image).to(device)
-#
-#     step_h = crop_size
-#     step_w = crop_size
-#
-#     merge_img = torch.zeros_like(image).to(device)
-#
-#     # 切割图像
-#     for m in range(row):
-#         for n in range(col):
-#             dh = m * step_h
-#             dw = n * step_w
-#             if net is None:
-#                 group_image[m, n] = image[:, :, dh:dh + crop_size, dw:dw + crop_size]
-#             else:
-#                 group_image[m, n], group_image1[m, n], group_image2[m, n] = net(
-#                     image[:, :, dh:dh + crop_size, dw:dw + crop_size])
-#
-#     # 合并切块预测结果
-#     for i in range(h_o):
-#         for j in range(w_o):
-#             p = i // crop_size
-#             q = j // crop_size
-#             p_h = i % crop_size
-#             p_w = j % crop_size
-#             merge_img[:, :, i, j] = group_image[p, q, :, :, p_h, p_w]
-#
-#     print('================= has finished this picture prediction ==================')
-#     return merge_img[:, :, 0:h_o, 0:w_o].to(device)
-
-
-def crop_eval_new_V1(net, image, crop_size = 960, row=3, col=4):
-    h_o, w_o = image.size()[2], image.size()[3]
-    group_image = torch.zeros_like(torch.rand(size=(row, col, image.size()[0], image.size()[1], crop_size,  crop_size))).to(device)
-    group_image1 = torch.zeros_like(
-        torch.rand(size=(row, col, image.size()[0], image.size()[1], crop_size, crop_size))).to(device)
-    group_image2 = torch.zeros_like(
-        torch.rand(size=(row, col, image.size()[0], image.size()[1], crop_size, crop_size))).to(device)
-    image, s_h, s_w= padding_img(image, crop_size, row, col)
-    h, w = image.size()[2], image.size()[3]
-    assert (crop_size > s_h and crop_size > s_w)
-    merge_img = torch.zeros_like(image).to(device)
-    for m in range(0, row):
-        for n in range(0, col):
-            dh = m * s_h
-            dw = n * s_w
-            if net is None:
-                group_image[m,n,:,:,:,:,] = image[:,:,dh:dh+crop_size, dw:dw+crop_size]
-            else:
-                group_image[m,n,:,:,:,:,], group_image1[m,n,:,:,:,:,], group_image2[m,n,:,:,:,:,]= net(image[:,:,dh:dh+crop_size, dw:dw+crop_size])
-
-    # print(image.size(),'-------------------- here has cropped -----------------------',s_h, s_w, h, w, crop_size)
-
-    for i in range(0, h):
-        for j in range(0, w):
-           p, q = np.maximum((i - crop_size)// s_h, -1) + 1, np.maximum((j - crop_size)// s_w, -1) + 1
-           p_h, p_w = i - p * s_h, j - q * s_w
-           # print(p, q, p_h, p_w)
-           j_s = 1
-           merge_img[:, :, i, j] = group_image[p, q, :, :, p_h, p_w]
-           for k1 in range(0, row):
-               for k2 in range(0, col):
-                   if (k1 < p_h / s_h and k1 < row - p):
-                       merge_img[:,:, i, j] += group_image[p + k1, q, :, :, p_h - k1 * s_h, p_w]
-                       j_s +=1
-                   if (k1 < (crop_size-p_h) / s_h and k1 <= p):
-                       merge_img[:, :, i, j] += group_image[p - k1, q, :, :, p_h + k1 * s_h, p_w]
-                       j_s += 1
-                   if (k2 < p_w / s_w and k2 < col - q):
-                       merge_img[:,:, i, j] += group_image[p, q + k2, :, :, p_h, p_w - k2 * s_w]
-                       j_s += 1
-                   if (k2 < (crop_size - p_w) / s_w and k2 <= q):
-                       merge_img[:,:, i, j] += group_image[p, q - k2, :, :, p_h, p_w + k2 * s_w]
-                       j_s += 1
-           merge_img[:, :, i, j] /= j_s
-    print('================= has finished this picture prediction ================== ')
-    return merge_img[:, :, 0:h_o, 0:w_o].to(device)
-
-def padding_img(image, crop_size, rows, clos):
-    pad_h, pad_w = (image.size()[2] - crop_size)%(rows-1), (image.size()[3] - crop_size)%(clos-1)
-    image = padding_hw(image, dims='h', ns= 0 if pad_h==0 else rows -1 -pad_h)
-    image = padding_hw(image, dims='w', ns= 0 if pad_w==0 else clos -1 -pad_w)
-    return image.to(device), (image.size()[2] - crop_size)//(rows-1), (image.size()[3] - crop_size)//(clos-1)
-
-def padding_hw(img, dims = 'h', ns = 0):
-    if ns ==0:
-        return img
-    else:
-        after_expanding = None
-        if dims == 'h':
-            pad_img = torch.zeros_like(img[:,:,0 : ns,:,])
-            after_expanding = torch.cat([img, pad_img], dim=2)
-        elif dims == 'w':
-            pad_img = torch.zeros_like(img[:,:,:,0:ns])
-            after_expanding = torch.cat([img, pad_img], dim=3)
-        return after_expanding
-
-
-
-# def writer_into_files(path = Constants.visual_results+'evaluation.txt'):
-#     f = open(path, 'w', encoding='utf-8')
-#     f.write('ewe{}'.format(12)
-#     f.close()
 
 if __name__ == '__main__':
     path = '../log/weights_save/HRF_(UU_C_1)_3_(960_768_512)/12.iter3'

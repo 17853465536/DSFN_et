@@ -43,17 +43,9 @@ def get_drive_data(val_ratio = 0.1, is_train = True):
     images1 = load_from_npy(Constants.path_image_drive)
     mask = load_from_npy(Constants.path_label_drive)
 
-
-    # FIVES  数据集操作变了=======================================================================================================
-    # images1 = np.array(images1, np.float32).transpose(0, 2, 1, 3)
-    # mask = np.array(mask, np.float32).transpose(0, 2, 1, 3)  # CHASE_DB1
-    # FIVES  数据集操作变了=======================================================================================================
-
     images_test1 = load_from_npy(Constants.path_test_image_drive)
     mask_test = load_from_npy(Constants.path_test_label_drive)
 
-    # images_val = load_from_npy(Constants.path_val_image_drive)
-    # mask_val = load_from_npy(Constants.path_val_label_drive)
 
 
     images2 = rgb2gray(images1)
@@ -66,13 +58,6 @@ def get_drive_data(val_ratio = 0.1, is_train = True):
     images_test4 = clahe_equalized(images_test3)
     images_test = adjust_gamma(images_test4, 1.0)
 
-    # images = zmIceColor(images / 255.0) * 255
-    # images_test = zmIceColor(images_test / 255.0) * 255
-
-    # images_val = rgb2gray(images_val)
-    # images_val = dataset_normalized(images_val)
-    # images_val = clahe_equalized(images_val)
-    # images_val = adjust_gamma(images_val, 1.0)
 
     images = images/255.                # reduce to 0-1 range
     images_test = images_test / 255.
@@ -86,72 +71,14 @@ def get_drive_data(val_ratio = 0.1, is_train = True):
 
 
 
-    # val_num = int(images.shape[0] * val_ratio)
-    # train_list = [images[val_num:, :, :, :, ], mask[val_num:, :, :, :, ]] #  1440-144==========
     train_list = [images[0:, :, :, :, ], mask[0:, :, :, :, ]]
-    # val_list = [images_val, mask_val]
     val_list = [images_test, mask_test]
-    # val_list = [images_test[0:1, :, :, :, ], mask_test[0:1, :, :, :, ]]
     if is_train is True:
         return train_list, val_list
     else:
         return images_test, mask_test
 
 
-def get_drive_data1(val_ratio = 0.1, is_train = True):
-    images1 = load_from_npy(Constants.path_image_drive)
-    mask = load_from_npy(Constants.path_label_drive)
-
-    # FIVES  数据集操作变了=======================================================================================================
-    images1 = np.array(images1, np.float32).transpose(0, 2, 1, 3)
-    mask = np.array(mask, np.float32).transpose(0, 2, 1, 3)  # CHASE_DB1
-    # FIVES  数据集操作变了=======================================================================================================
-
-    images_test1 = load_from_npy(Constants.path_val_image_drive)
-    mask_test = load_from_npy(Constants.path_val_label_drive)
-    # images_val = load_from_npy(Constants.path_val_image_drive)
-    # mask_val = load_from_npy(Constants.path_val_label_drive)
-
-
-    images2 = rgb2gray(images1)
-    images3 = dataset_normalized(images2)
-    images4 = clahe_equalized(images3)
-    images = adjust_gamma(images4, 1.0)
-
-    images_test2 = rgb2gray(images_test1)
-    images_test3 = dataset_normalized(images_test2)
-    images_test4 = clahe_equalized(images_test3)
-    images_test = adjust_gamma(images_test4, 1.0)
-
-    # images = zmIceColor(images / 255.0) * 255
-    # images_test = zmIceColor(images_test / 255.0) * 255
-
-    # images_val = rgb2gray(images_val)
-    # images_val = dataset_normalized(images_val)
-    # images_val = clahe_equalized(images_val)
-    # images_val = adjust_gamma(images_val, 1.0)
-
-    images = images/255.                # reduce to 0-1 range
-    images_test = images_test / 255.
-    # images_val = images_val / 255.
-    print(images.shape, mask.shape, '=================', np.max(images), np.max(mask))
-
-    print('========  success load all Drive files ==========')
-
-    # FIVES  数据集操作变了=======================================================================================================
-    # mask = np.transpose(mask, (0, 2, 1, 3))  # (1600, 1, 512, 512) <-- (1600, 512, 1, 512)
-
-
-    visual_sample(images[0:20,:,:,:,], mask[0:20,:,:,:,], save_drive)
-
-    train_list = [images[0:, :, :, :, ], mask[0:, :, :, :, ]]
-    # val_list = [images_val, mask_val]
-    val_list = [images_test, mask_test]
-    # val_list = [images_test[0:1, :, :, :, ], mask_test[0:1, :, :, :, ]]
-    if is_train is True:
-        return train_list, val_list
-    else:
-        return images_test, mask_test
 
 class ImageFolder(data.Dataset):
     '''
